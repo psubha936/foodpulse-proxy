@@ -8,6 +8,15 @@ export function createIdentityRouter(config: ServiceConfig): Router {
   const router = Router();
 
   router.post("/api/v1/identity/roles", async (request, response) => {
+    const apiKey = request.header("x-api-key");
+    if (!apiKey || !config.apiKeys.includes(apiKey)) {
+      throw new AppError({
+        status: HttpStatus.UNAUTHORIZED,
+        code: ErrorCode.UNAUTHENTICATED,
+        message: "Invalid API key",
+      });
+    }
+
     let upstream: globalThis.Response;
     try {
       upstream = await fetch(`${config.identityServiceUrl}/roles`, {
@@ -15,9 +24,6 @@ export function createIdentityRouter(config: ServiceConfig): Router {
         headers: {
           "content-type": "application/json",
           "x-request-id": String(response.locals.requestId),
-          ...(request.header("authorization")
-            ? { authorization: request.header("authorization") as string }
-            : {}),
         },
         body: JSON.stringify(request.body),
         signal: AbortSignal.timeout(config.upstreamTimeoutMs),

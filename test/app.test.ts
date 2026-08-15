@@ -6,8 +6,13 @@ import { createApp } from "../src/app.js";
 import { loadServiceConfig } from "../src/config/service-config.js";
 import { ErrorCode } from "../src/enums/error-code.enum.js";
 
+const testEnvironment: NodeJS.ProcessEnv = {
+  NODE_ENV: "test",
+  X_API_KEYS: "test-client-key, second-client-key",
+};
+
 test("health and error responses use the common API contract", async (context) => {
-  const config = loadServiceConfig();
+  const config = loadServiceConfig(testEnvironment);
   const server = createApp(config).listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.once("listening", resolve));
   context.after(() => new Promise<void>((resolve, reject) => {
@@ -70,6 +75,7 @@ test("role creation is forwarded to identity-service with its request ID", async
   const config = loadServiceConfig({
     NODE_ENV: "test",
     IDENTITY_SERVICE_URL: `http://127.0.0.1:${identityPort}`,
+    X_API_KEYS: "test-client-key, second-client-key",
   });
   const proxyServer = createApp(config).listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => proxyServer.once("listening", resolve));
@@ -78,6 +84,16 @@ test("role creation is forwarded to identity-service with its request ID", async
   }));
 
   const proxyPort = (proxyServer.address() as AddressInfo).port;
+  const unauthorized = await fetch(
+    `http://127.0.0.1:${proxyPort}/api/v1/identity/roles`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: "blocked" }),
+    },
+  );
+  assert.equal(unauthorized.status, 401);
+
   const response = await fetch(
     `http://127.0.0.1:${proxyPort}/api/v1/identity/roles`,
     {
@@ -85,6 +101,7 @@ test("role creation is forwarded to identity-service with its request ID", async
       headers: {
         "content-type": "application/json",
         "x-request-id": "role-flow-test",
+        "x-api-key": "test-client-key",
       },
       body: JSON.stringify({
         code: "restaurant_support",

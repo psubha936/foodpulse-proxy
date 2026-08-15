@@ -30,6 +30,10 @@ configuration. The committed default already uses port `8080`.
 `IDENTITY_SERVICE_URL` defaults to `http://127.0.0.1:8081`, and
 `UPSTREAM_TIMEOUT_MS` defaults to 10000.
 
+`X_API_KEYS` is required and accepts a comma-separated allow-list. Clients such as
+Postman must send one configured value in the `x-api-key` header. Do not embed these
+keys in a browser application because browser code cannot keep a shared key secret.
+
 ## Source layout
 
 ```text

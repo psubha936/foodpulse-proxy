@@ -9,7 +9,26 @@ export interface ServiceConfig {
   host: string;
   port: number;
   identityServiceUrl: string;
+  apiKeys: string[];
   upstreamTimeoutMs: number;
+}
+
+function requireValue(environment: NodeJS.ProcessEnv, key: string): string {
+  const value = environment[key]?.trim();
+  if (!value) throw new Error(`${key} is required`);
+  return value;
+}
+
+function parseApiKeys(environment: NodeJS.ProcessEnv): string[] {
+  const apiKeys = requireValue(environment, "X_API_KEYS")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (apiKeys.length === 0) {
+    throw new Error("X_API_KEYS must contain at least one API key");
+  }
+  return apiKeys;
 }
 
 function parseNodeEnvironment(value: string | undefined): NodeEnvironment {
@@ -61,6 +80,7 @@ export function loadServiceConfig(
     host: environment.HOST?.trim() || "0.0.0.0",
     port: parsePort(environment.PORT),
     identityServiceUrl: parseServiceUrl(environment.IDENTITY_SERVICE_URL),
+    apiKeys: parseApiKeys(environment),
     upstreamTimeoutMs: parsePositiveInteger(
       environment.UPSTREAM_TIMEOUT_MS,
       10_000,

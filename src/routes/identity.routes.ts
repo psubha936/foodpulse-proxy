@@ -3,6 +3,7 @@ import type { ServiceConfig } from "../config/service-config.js";
 import { ErrorCode } from "../enums/error-code.enum.js";
 import { HttpStatus } from "../enums/http-status.enum.js";
 import { AppError } from "../errors/app-error.js";
+import { logger } from "../utils/logger.util.js";
 
 export function createIdentityRouter(config: ServiceConfig): Router {
   const router = Router();
@@ -10,6 +11,10 @@ export function createIdentityRouter(config: ServiceConfig): Router {
   router.post("/api/v1/identity/roles", async (request, response) => {
     const apiKey = request.header("x-api-key");
     if (!apiKey || !config.apiKeys.includes(apiKey)) {
+      logger.warn("Identity route rejected invalid API key", {
+        requestId: String(response.locals.requestId),
+        path: request.path,
+      });
       throw new AppError({
         status: HttpStatus.UNAUTHORIZED,
         code: ErrorCode.UNAUTHENTICATED,
@@ -29,6 +34,10 @@ export function createIdentityRouter(config: ServiceConfig): Router {
         signal: AbortSignal.timeout(config.upstreamTimeoutMs),
       });
     } catch (error) {
+      logger.error("Identity service request failed", error, {
+        requestId: String(response.locals.requestId),
+        path: request.path,
+      });
       throw new AppError({
         status: HttpStatus.SERVICE_UNAVAILABLE,
         code: ErrorCode.UPSTREAM_SERVICE_ERROR,
@@ -38,6 +47,11 @@ export function createIdentityRouter(config: ServiceConfig): Router {
     }
 
     const contentType = upstream.headers.get("content-type");
+    logger.info("Identity service request completed", {
+      requestId: String(response.locals.requestId),
+      path: request.path,
+      upstreamStatus: upstream.status,
+    });
     if (contentType) response.setHeader("content-type", contentType);
     const body = Buffer.from(await upstream.arrayBuffer());
     response.status(upstream.status);

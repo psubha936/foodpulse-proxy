@@ -8,6 +8,8 @@ export interface ServiceConfig {
   nodeEnv: NodeEnvironment;
   host: string;
   port: number;
+  identityServiceUrl: string;
+  upstreamTimeoutMs: number;
 }
 
 function parseNodeEnvironment(value: string | undefined): NodeEnvironment {
@@ -28,6 +30,28 @@ function parsePort(value: string | undefined): number {
   return port;
 }
 
+function parsePositiveInteger(
+  value: string | undefined,
+  fallback: number,
+  key: string,
+): number {
+  if (value === undefined || value.trim() === "") return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${key} must be a positive integer`);
+  }
+  return parsed;
+}
+
+function parseServiceUrl(value: string | undefined): string {
+  const candidate = value?.trim() || "http://127.0.0.1:8081";
+  const url = new URL(candidate);
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("IDENTITY_SERVICE_URL must use http or https");
+  }
+  return url.toString().replace(/\/$/, "");
+}
+
 export function loadServiceConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): ServiceConfig {
@@ -36,5 +60,11 @@ export function loadServiceConfig(
     nodeEnv: parseNodeEnvironment(environment.NODE_ENV),
     host: environment.HOST?.trim() || "0.0.0.0",
     port: parsePort(environment.PORT),
+    identityServiceUrl: parseServiceUrl(environment.IDENTITY_SERVICE_URL),
+    upstreamTimeoutMs: parsePositiveInteger(
+      environment.UPSTREAM_TIMEOUT_MS,
+      10_000,
+      "UPSTREAM_TIMEOUT_MS",
+    ),
   };
 }

@@ -8,6 +8,7 @@ Public entry point for backend APIs
 - Express 5
 - Default local port: `8080`
 - Health endpoints: `GET /health` and `GET /ready`
+- Role administration proxy: `POST /api/v1/identity/roles`
 
 The shared workspace port registry is stored at
 `implementation/SERVICE_PORTS.md` from the FoodPulse workspace root.
@@ -25,6 +26,9 @@ npm start
 
 Copy `.env.example` to the ignored `.env` file only when overriding local
 configuration. The committed default already uses port `8080`.
+
+`IDENTITY_SERVICE_URL` defaults to `http://127.0.0.1:8081`, and
+`UPSTREAM_TIMEOUT_MS` defaults to 10000.
 
 ## Source layout
 

@@ -5,6 +5,7 @@ import { errorHandler } from "./middleware/error-handler.middleware.js";
 import { notFoundHandler } from "./middleware/not-found.middleware.js";
 import { requestContext } from "./middleware/request-context.middleware.js";
 import { createSystemRouter } from "./routes/system.routes.js";
+import { createIdentityRouter } from "./routes/identity.routes.js";
 
 export function createApp(config: ServiceConfig): Express {
   const app = express();
@@ -15,6 +16,7 @@ export function createApp(config: ServiceConfig): Express {
   app.use(express.urlencoded({ extended: false, limit: "1mb" }));
   app.use(requestContext);
   app.use(createSystemRouter(config));
+  app.use(createIdentityRouter(config));
   app.use(notFoundHandler);
   app.use(errorHandler);
 
